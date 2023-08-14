@@ -25,7 +25,7 @@ function init_wc_gateway_clicktopay()
 
             $this->id            = 'wc_ctp';
             $this->method_title = __('ClicToPay', 'clictopay');
-            $this->icon            = apply_filters('wc_gateway_clicktopay_icon', 'clictopay-logo.png');
+            $this->icon            =  plugins_url('images/clictopay-logo.png', __FILE__) .
             $this->has_fields     = false;
 
             // Load the form fields.
@@ -86,8 +86,8 @@ function init_wc_gateway_clicktopay()
             <p>
                 <?php _e('<br> <hr> <br>
 				<div style="float:right;text-align:right;">
-					Made with &hearts; at <a href="https://www.paymee.tn" target="_blank">Paymee</a> | Besoin d\'aide? <a href="contact@paymee.tn" target="_blank">Contactez-nous</a><br><br>
-					<a href="https://www.paymee.tn" target="_blank"><img src="' . plugins_url('images/paymee-logo-text.png', __FILE__) . '">
+					Made with &hearts; at <a href="https://aisysnext.com" target="_blank">AISYSNEXT</a> | Besoin d\'aide? <a href="contact@aisysnext.com" target="_blank">Contactez-nous</a><br><br>
+					<a href="https://aisysnext.com" target="_blank"><img src="' . plugins_url('images/aisysnext-logo-text.png', __FILE__) . '">
 					</a>
 				</div>', 'clictopay'); ?>
             </p>
