@@ -7,6 +7,9 @@ Description: ClicToPay Payment Gateway for Tunisian card payment.
 Version: 1.0.1
 Author: Aymen Jemi (AISYSNEXT)
 Author URI: https://github.com/jemiaymen/
+Contributors: AISYSNEXT
+Requires at least: 4.0
+Tested up to: 6.3
 */
 
 add_action('plugins_loaded', 'init_wc_gateway_clicktopay', 0);
@@ -24,9 +27,9 @@ function init_wc_gateway_clicktopay()
             global $woocommerce;
 
             $this->id            = 'wc_ctp';
-            $this->method_title = __('ClicToPay', 'clictopay');
-            $this->icon            =  plugins_url('images/clictopay-logo.png', __FILE__) .
-            $this->has_fields     = false;
+            $this->method_title  = __('ClicToPay', 'clictopay');
+            $this->icon          =  'clictopay-logo.png';
+            $this->has_fields    = false;
 
             // Load the form fields.
             $this->init_form_fields();
@@ -35,8 +38,9 @@ function init_wc_gateway_clicktopay()
             $this->init_settings();
 
             // Define user set variables
-            $this->title             = "ClicToPay";
-            $this->description         = "Pay with Credit Card in Tunisia";
+            $this->title            = $this->get_option('title');
+            $this->description      = $this->get_option('description');
+
             $this->enabled          = $this->get_option('enabled');
             $this->mode             = $this->get_option('mode');
 
@@ -64,7 +68,7 @@ function init_wc_gateway_clicktopay()
 
             $icon = '';
             if ($this->icon) {
-                $icon = '<img src="' . plugins_url('images/' . $this->icon, __FILE__)  . '" alt="' . $this->title . '" />';
+                $icon = '<img width="180" src="' . plugins_url('images/' . $this->icon, __FILE__)  . '" alt="' . $this->title . '" />';
             }
 
             return apply_filters('woocommerce_gateway_icon', $icon, $this->id);
@@ -86,8 +90,8 @@ function init_wc_gateway_clicktopay()
             <p>
                 <?php _e('<br> <hr> <br>
 				<div style="float:right;text-align:right;">
-					Made with &hearts; at <a href="https://aisysnext.com" target="_blank">AISYSNEXT</a> | Besoin d\'aide? <a href="contact@aisysnext.com" target="_blank">Contactez-nous</a><br><br>
-					<a href="https://aisysnext.com" target="_blank"><img src="' . plugins_url('images/aisysnext-logo-text.png', __FILE__) . '">
+					Made with &hearts; at <a href="https://aisysnext.com" target="_blank">AISYSNEXT</a> | Besoin d\'aide? <a href="mailto:contact@aisysnext.com" target="_blank">Contactez-nous</a><br><br>
+					<a href="https://aisysnext.com" target="_blank"><img width="200" src="' . plugins_url('images/aisysnext-logo-text.png', __FILE__) . '">
 					</a>
 				</div>', 'clictopay'); ?>
             </p>
@@ -114,6 +118,19 @@ function init_wc_gateway_clicktopay()
                         'prod' => 'Production'
                     ),
                     'default' => 'test'
+                ),
+                'title' => array(
+                    'title' => 'Title',
+                    'type' => 'text',
+                    'description' => 'This controls the title which the user sees during checkout.',
+                    'default' => 'Carte de crédit',
+                    'desc_tip' => true,
+                ),
+                'description' => array(
+                    'title' => 'Description',
+                    'type' => 'textarea',
+                    'description' => 'This controls the description which the user sees during checkout.',
+                    'default' => 'Payer avec votre carte bancaire à travers le service ClicToPay.',
                 ),
                 'username' => array(
                     'title' => __('Login', 'clictopay'),
@@ -168,7 +185,7 @@ function init_wc_gateway_clicktopay()
                     $this->password,
                     $order_id,
                     (floatval($order->get_total()) * 1000),
-                    $this->get_return_url($order)
+                    $webhook_url 
                 ) ;
             }
 
@@ -237,25 +254,24 @@ function init_wc_gateway_clicktopay()
             //error example
             //{"depositAmount":0,"currency":"788","authCode":2,"ErrorCode":"2","ErrorMessage":"Payment is declined","OrderStatus":6,"OrderNumber":"442","Amount":2300}
 
-            if ($body['ErrorMessage'] === 'Success') {
+            //success example
+            //{"expiration":"202312","cardholderName":"AYMEN JEMI","depositAmount":50,"currency":"788","approvalCode":"315442","ErrorCode":"0","ErrorMessage":"Success","OrderStatus":2,"OrderNumber":"77","Pan":"510440**3827","Amount":50,"Ip":"197.17.13.64"}
+
+            if ($body['ErrorMessage'] == 'Success' ) {
                 global $woocommerce;
 
                 $order =  wc_get_order( $body['OrderNumber']);
 
+            
+                $order->payment_complete();
+                $order->reduce_order_stock();
+                $order->update_status('completed',$_GET['orderId']);
 
+                $order->add_order_note('Payée avec ClicToPay. Numéro de la transaction '. $_GET['orderId'] );
+                $woocommerce->cart->empty_cart();
 
-                if ((floatval($order->get_total())  * 1000) == $body['depositAmount']) {
-                    $order->add_order_note('Payée avec ClicToPay. Numéro de la transaction '. $_GET['orderId'] );
-                    $order->payment_complete();
-                    $order->reduce_order_stock();
+                wp_redirect($this->get_return_url($order));
 
-                    wp_redirect($this->get_return_url($order));
-
-                } else {
-                    wc_add_notice(sprintf(__('Erreur de paiement le montant n\'est pas exact!.', 'clictopay')), $notice_type = 'error');
-                    wp_redirect(get_permalink(get_option('woocommerce_checkout_page_id')));
-
-                }
             } else {
                 $order =  wc_get_order( $body['OrderNumber']);
 
